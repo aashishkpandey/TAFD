@@ -2,6 +2,8 @@
 #           Text Analytics for dummies         #
 #----------------------------------------------#
 
+# contact - aashishkpandey@gmail.com
+
 #________________________________________________#
 
 require(text2vec) || install.packages("text2vec")
