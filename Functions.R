@@ -45,13 +45,14 @@ text.clean = function(x)                    # text data
   return(x)
 }
 
-dtm.create.text <- function(text,id = "",
+dtm.tcm.creator <- function(text,id = "",
                             std.clean = TRUE,
                             std.stop.words = TRUE,
                             stop.words.additional = c('a','b'),
                             bigram.encoding = TRUE,
                             bigram.min.freq = 2,
-                            min.dtm.freq = 2) {
+                            min.dtm.freq = 2,
+                            skip.grams.window = 5) {
   
   if (class(text) != "character" | length(text) < 3){
     stop("data format Not correct. Make sure it's a character verctor of length above 3")
@@ -123,99 +124,110 @@ dtm.create.text <- function(text,id = "",
   
   dtm_m  = create_dtm(it_m, vectorizer)
   dtm = as.DocumentTermMatrix(dtm_m, weighting = weightTf)
-  print("Done!!")
-  return(dtm)
-}
-
-#_____________________________________________________#
-#_____________________________________________________#
-
-tcm.create.text <- function(text,id = "",
-                            std.clean = TRUE,
-                            std.stop.words = TRUE,
-                            stop.words.additional = c('a','b'),
-                            bigram.encoding = TRUE,
-                            bigram.min.freq = 2,
-                            min.dtm.freq = 2,
-                            skip.grams.window = 5) {
-  
-  if (class(text) != "character" | length(text) < 3){
-    stop("data format Not correct. Make sure it's a character verctor of length above 3")
-  }
-  
-  if ((id == "")[1]){
-    id = 1:length(text)
-  }
-  
-  if (std.clean == TRUE) {
-    print("Performing Standard Text Cleaning")
-    
-    text = text.clean(text)
-  }
-  
-  if (std.stop.words == TRUE){
-    print("Removing Stop Words")
-    
-    
-    stop.words.f = unique(c(stpw3,stop.words.additional))
-    text = removeWords(text,stop.words.f)            # removing stopwords created above
-    text = stripWhitespace(text)                  # removing white spacestop.words.additional
-  }
-  
-  if (bigram.encoding == TRUE){
-    
-    # data = data.frame(id = 1:length(text),text = text, stringsAsFactors = F)
-    tok_fun = word_tokenizer  # using word & not space tokenizers
-    print("finding bi-grams for encoding with selected criteria")
-    
-    it_0 = itoken( text,
-                   tokenizer = tok_fun,
-                   ids = id,
-                   progressbar = T)
-    
-    vocab = create_vocabulary(it_0, ngram = c(2L, 2L))
-    pruned_vocab = prune_vocabulary(vocab, term_count_min = bigram.min.freq)
-    replace_list = pruned_vocab$vocab$terms[order(pruned_vocab$vocab$terms_counts, decreasing = T)]
-    
-    if (length(replace_list) > 0){
-      text = paste("",text,"")
-      
-      pb <- txtProgressBar(min = 1, max = (length(replace_list)), style = 3) ; i = 0
-      
-      print(paste("Encoding",length(replace_list),"bi-grams as unigram"))
-      for (term in replace_list){
-        i = i + 1
-        focal.term = gsub("_", " ",term)        # in case dot was word-separator
-        replacement.term = term
-        text = gsub(paste("",focal.term,""),paste("",replacement.term,""), text)
-        setTxtProgressBar(pb, i)
-      }                  
-    } else {
-      print("No bigram to encode with selected criteria")}
-  }
-  
-  print("Creating Terms Matrix")
-  # Create DTM
-  it_m = itoken(text,
-                tokenizer = tok_fun,
-                ids = id,
-                progressbar = T)
-  
-  vocab = create_vocabulary(it_m)
-  pruned_vocab = prune_vocabulary(vocab,
-                                  term_count_min = min.dtm.freq)
   
   print("Creating Term Co-occurrence Matrix")
-  
-  vectorizer = vocab_vectorizer(pruned_vocab, 
-                                grow_dtm = FALSE, 
+
+  vectorizer = vocab_vectorizer(pruned_vocab,
+                                grow_dtm = FALSE,
                                 skip_grams_window = skip.grams.window)
-  
+
   tcm = create_tcm(it_m, vectorizer) # func to build a TCM
-  
+
   print("Done!!")
-  return(tcm)
+  out = list(dtm = dtm, tcm = tcm)
+
+  return(out)
 }
+
+#_____________________________________________________#
+#_____________________________________________________#
+# 
+# tcm.create.text <- function(text,id = "",
+#                             std.clean = TRUE,
+#                             std.stop.words = TRUE,
+#                             stop.words.additional = c('a','b'),
+#                             bigram.encoding = TRUE,
+#                             bigram.min.freq = 2,
+#                             min.dtm.freq = 2,
+#                             skip.grams.window = 5) {
+#   
+#   if (class(text) != "character" | length(text) < 3){
+#     stop("data format Not correct. Make sure it's a character verctor of length above 3")
+#   }
+#   
+#   if ((id == "")[1]){
+#     id = 1:length(text)
+#   }
+#   
+#   if (std.clean == TRUE) {
+#     print("Performing Standard Text Cleaning")
+#     
+#     text = text.clean(text)
+#   }
+#   
+#   if (std.stop.words == TRUE){
+#     print("Removing Stop Words")
+#     
+#     
+#     stop.words.f = unique(c(stpw3,stop.words.additional))
+#     text = removeWords(text,stop.words.f)            # removing stopwords created above
+#     text = stripWhitespace(text)                  # removing white spacestop.words.additional
+#   }
+#   
+#   if (bigram.encoding == TRUE){
+#     
+#     # data = data.frame(id = 1:length(text),text = text, stringsAsFactors = F)
+#     tok_fun = word_tokenizer  # using word & not space tokenizers
+#     print("finding bi-grams for encoding with selected criteria")
+#     
+#     it_0 = itoken( text,
+#                    tokenizer = tok_fun,
+#                    ids = id,
+#                    progressbar = T)
+#     
+#     vocab = create_vocabulary(it_0, ngram = c(2L, 2L))
+#     pruned_vocab = prune_vocabulary(vocab, term_count_min = bigram.min.freq)
+#     replace_list = pruned_vocab$vocab$terms[order(pruned_vocab$vocab$terms_counts, decreasing = T)]
+#     
+#     if (length(replace_list) > 0){
+#       text = paste("",text,"")
+#       
+#       pb <- txtProgressBar(min = 1, max = (length(replace_list)), style = 3) ; i = 0
+#       
+#       print(paste("Encoding",length(replace_list),"bi-grams as unigram"))
+#       for (term in replace_list){
+#         i = i + 1
+#         focal.term = gsub("_", " ",term)        # in case dot was word-separator
+#         replacement.term = term
+#         text = gsub(paste("",focal.term,""),paste("",replacement.term,""), text)
+#         setTxtProgressBar(pb, i)
+#       }                  
+#     } else {
+#       print("No bigram to encode with selected criteria")}
+#   }
+#   
+#   print("Creating Terms Matrix")
+#   # Create DTM
+#   it_m = itoken(text,
+#                 tokenizer = tok_fun,
+#                 ids = id,
+#                 progressbar = T)
+#   
+#   vocab = create_vocabulary(it_m)
+#   pruned_vocab = prune_vocabulary(vocab,
+#                                   term_count_min = min.dtm.freq)
+#   
+#   print("Creating Term Co-occurrence Matrix")
+#   
+#   vectorizer = vocab_vectorizer(pruned_vocab, 
+#                                 grow_dtm = FALSE, 
+#                                 skip_grams_window = skip.grams.window)
+#   
+#   tcm = create_tcm(it_m, vectorizer) # func to build a TCM
+#   
+#   print("Done!!")
+#   return(tcm)
+# }
 
 #_____________________________________________________#
 #_____________________________________________________#
