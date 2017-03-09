@@ -70,6 +70,30 @@ distill.cog.tcm(mat1=dtm, # input TCM MAT
 #--------------------------------------------------------#
 #--------------------------------------------------------#
 
+sna = tidy.sentiment(textb)
+
+ggplot(sna$sent.nrc, 
+       aes(index, n, fill = sentiment)) +     # index is x col, n is y col. fill=?
+        geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) +     # stat=?
+          facet_wrap(~sentiment, ncol = 2, scales = "free_x")     # so cool.
+
+ggplot(sna$sent.bing, 
+       aes(index, n, fill = sentiment)) +     # index is x col, n is y col. fill=?
+  geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) +     # stat=?
+  facet_wrap(~sentiment, ncol = 2, scales = "free_x")     # so cool.
+
+ggplot(sna$sent.loughran, 
+       aes(index, n, fill = sentiment)) +     # index is x col, n is y col. fill=?
+  geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) +     # stat=?
+  facet_wrap(~sentiment, ncol = 2, scales = "free_x")     # so cool.
+
+ggplot(sna$sent.afinn, 
+       aes(index, sentiment)) +     # index is x col, n is y col. fill=?
+        geom_bar(alpha = 1, stat = "identity", position = "identity", show.legend = FALSE)      # stat=?
+
+#--------------------------------------------------------#
+#--------------------------------------------------------#
+
 tdm.text.wordlistfilter <- function()
   text.sentence.split <- function()
     text.nrc.sentiment <- function()
