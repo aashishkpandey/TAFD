@@ -208,6 +208,12 @@ distill.cog.tcm = function(mat1, # input TCM or DTM MAT
     mat1 = tcrossprod(t(mat1))
   }
   
+  if (mattype == "TCM"){
+    mat1 = as.matrix(mat1)
+    mat1 = mat1 + t(mat1)
+  }
+  
+  
   if (ncol(mat1) > 1000) {
     tst = round(ncol(mat1)/100)  # divide mat1's cols into 100 manageble parts
     a = rep(tst,99)
@@ -251,11 +257,11 @@ distill.cog.tcm = function(mat1, # input TCM or DTM MAT
   mat4 = mat3[match(ord, colnames(mat3)), match(ord, colnames(mat3))]
   
   # mat4 = mat2[1:40,1:40]
-  if (mattype == "DTM"){
+  # if (mattype == "DTM"){
+  #   graph <- graph.adjacency(mat4, mode = "undirected", weighted=T)    # Create Network object
+  # } else {
     graph <- graph.adjacency(mat4, mode = "undirected", weighted=T)    # Create Network object
-  } else {
-    graph <- graph.adjacency(mat4, mode = "directed", weighted=T)    # Create Network object
-  }
+  # }
   
   graph = simplify(graph) 
   V(graph)$color[1:s] = "green"
@@ -413,11 +419,12 @@ analyze.lda <- function(file = "lda_interpretation.pdf",dtm = dtm,tcm = tcm, cen
 #_________________________________________________________#
 #_____________TIDYTEXT____________________________________#
 
-tidy.sentiment = function(text) {
+tidy.sentiment = function(text, lexicon = "nrc") {
 
   require(tidytext)
   require(tidyr)
   require(dplyr)
+  require(ggplot2)
   
   if (length(text[text !=""]) == 0 ) stop (print("Null Vector :( "))
   
@@ -428,75 +435,57 @@ tidy.sentiment = function(text) {
     textdf = data_frame(text = text)  
   }
   
-  # if (lexicon == "nrc") {
-      sent.nrc = textdf %>%
+   if (lexicon != "afinn") {
+      sent = textdf %>%
       mutate(linenumber = row_number()) %>%
       ungroup() %>%
       unnest_tokens(word, text) %>%
       inner_join(get_sentiments("nrc")) %>%
       count(sentiment, index = linenumber %/% 1, sort = TRUE) %>%
-      mutate(method = "nrc")
-  # }
+      mutate(method = lexicon)
+   } else {
+       sent = textdf %>%
+       mutate(linenumber = row_number()) %>%
+       ungroup() %>%
+       unnest_tokens(word, text) %>%
+       inner_join(get_sentiments(lexicon)) %>%
+       group_by(index = linenumber %/% 1) %>% 
+       summarise(sentiment = sum(score)) %>% 
+       mutate(method = lexicon)
+   }
   
-  # if (lexicon == "bing") {
-      sent.bing = textdf %>%
-      mutate(linenumber = row_number()) %>%
-      ungroup() %>%
-      unnest_tokens(word, text) %>%
-      inner_join(get_sentiments("bing")) %>%
-      count(sentiment, index = linenumber %/% 1, sort = TRUE) %>%
-      mutate(method = "bing")
-  # }
-  
+  # dat1 = sent[(sent$sentiment %in% c("positive", "negative") ),]
+  # dat2 = sent[(sent$sentiment %in% c("uncertainty","litigious","constraining","superfluous") ),]
+  # dat3 = sent[(sent$sentiment %in% c("joy", "trust","surprise","anticipation") ),]
+  # dat4 = sent[(sent$sentiment %in% c("anger", "disgust","fear", "sadness") ),]
+  # 
   # if (lexicon == "afinn") {
-      sent.afinn = textdf %>%
-      mutate(linenumber = row_number()) %>%
-      ungroup() %>%
-      unnest_tokens(word, text) %>%
-      inner_join(get_sentiments("afinn")) %>%
-      group_by(index = linenumber %/% 1) %>% 
-      summarise(sentiment = sum(score)) %>% 
-      mutate(method = "afinn")
+  #   out = list(sent)
+  # } else if (lexicon == "nrc") {
+  #   out = list(dat3,dat4,dat1)
+  # } else if (lexicon == "bing") {
+  #   out = list(dat1)
+  # } else if (lexicon == "loughran") {
+  #   out = list(dat2,dat1)
   # }
   
-  # if (lexicon == "loughran") {
-      sent.loughran = textdf %>%
-      mutate(linenumber = row_number()) %>%
-      ungroup() %>%
-      unnest_tokens(word, text) %>%
-      inner_join(get_sentiments("loughran")) %>%
-      count(sentiment, index = linenumber %/% 1, sort = TRUE) %>%
-      mutate(method = "loughran")
-  # }
- 
-      # all = rbind(sent.nrc,sent.bing,sent.loughran)
-       
-      a = data.frame(sent.nrc %>% spread(sentiment, n, fill = 0))
-      b = data.frame(sent.bing %>% spread(sentiment, n, fill = 0))
-      c = data.frame(sent.afinn)
-      d = data.frame(sent.loughran %>% spread(sentiment, n, fill = 0))
-
-      a1 = c(setdiff(setdiff(unique(tidytext::sentiments$sentiment),NA),names(a)),"sentiment")
-      a11 = data.frame(matrix(0,nrow(a),length(a1))); colnames(a11) = a1
-      a = cbind(a,a11)
-
-      b1 = c(setdiff(setdiff(unique(tidytext::sentiments$sentiment),NA),names(b)),"sentiment")
-      b11 = data.frame(matrix(0,nrow(b),length(b1))); colnames(b11) = b1
-      b = cbind(b,b11)
-
-      c1 = c(setdiff(setdiff(unique(tidytext::sentiments$sentiment),NA),names(c)))
-      c11 = data.frame(matrix(0,nrow(c),length(c1))); colnames(c11) = c1
-      c = cbind(c,c11)
-
-      d1 = c(setdiff(setdiff(unique(tidytext::sentiments$sentiment),NA),names(d)),"sentiment")
-      d11 = data.frame(matrix(0,nrow(d),length(d1))); colnames(d11) = d1
-      d = cbind(d,d11)
-
-      all.sentiments = rbind(a,b,c,d)
-
-      out = list(sent.nrc = sent.nrc, sent.bing = sent.bing, sent.afinn = sent.afinn, sent.loughran = sent.loughran, all.sentiments = all.sentiments)
-    return(out)
-  }
+  
+  if (lexicon == "afinn") {
+      plot = ggplot(sent, x = ~index, y = ~sentiment ,
+      aes(index, sentiment)) +     # index is x col, n is y col. fill=?
+      geom_bar(alpha = 1, stat = "identity", position = "identity", show.legend = FALSE)      # stat=?
+    } 
+    
+    else{
+          plot =  ggplot(sent , 
+          aes(index, n, fill = sentiment)) +     # index is x col, n is y col. fill=?
+          geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) +     # stat=?
+          facet_wrap(~sentiment, ncol = 2, scales = "free_x")     # so cool.    
+    }
+  
+  out = list(sentimens = sent,plot = plot)
+  return(out)
+    }
 
 #_________________________________________________________#
 #_________________________________________________________#

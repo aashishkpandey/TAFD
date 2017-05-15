@@ -27,7 +27,7 @@ for (file in files){
 #------------------------------------------#
 textb = df$text
 ids = df$file
-
+# textb = readLines("clipboard")
 #-------------------------#
 dtm.tcm = dtm.tcm.creator(text = textb,
                       id = ids,
@@ -70,33 +70,21 @@ distill.cog.tcm(mat1=dtm, # input TCM MAT
 #--------------------------------------------------------#
 #--------------------------------------------------------#
 
-sna = tidy.sentiment(textb)
+sna.nrc = tidy.sentiment(text = textb,lexicon = "nrc")
+sna.afinn = tidy.sentiment(text = textb,lexicon = "afinn")
 
-ggplot(sna$sent.nrc, 
-       aes(index, n, fill = sentiment)) +     # index is x col, n is y col. fill=?
-        geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) +     # stat=?
-          facet_wrap(~sentiment, ncol = 2, scales = "free_x")     # so cool.
+sna.nrc$sentimens
+sna.nrc$plot
 
-ggplot(sna$sent.bing, 
-       aes(index, n, fill = sentiment)) +     # index is x col, n is y col. fill=?
-  geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) +     # stat=?
-  facet_wrap(~sentiment, ncol = 2, scales = "free_x")     # so cool.
+sna.afinn$sentimens
+sna.afinn$plot
 
-ggplot(sna$sent.loughran, 
-       aes(index, n, fill = sentiment)) +     # index is x col, n is y col. fill=?
-  geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) +     # stat=?
-  facet_wrap(~sentiment, ncol = 2, scales = "free_x")     # so cool.
-
-ggplot(sna$sent.afinn, 
-       aes(index, sentiment)) +     # index is x col, n is y col. fill=?
-        geom_bar(alpha = 1, stat = "identity", position = "identity", show.legend = FALSE)      # stat=?
 
 #--------------------------------------------------------#
 #--------------------------------------------------------#
-
 tdm.text.wordlistfilter <- function()
-  text.sentence.split <- function()
-    text.nrc.sentiment <- function()
-      text.polarity <- function()
+text.sentence.split <- function()
+text.nrc.sentiment <- function()
+text.polarity <- function()
         
         
